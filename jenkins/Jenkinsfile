@@ -1,0 +1,39 @@
+pipeline {
+    agent any
+	parameters {
+	    string(name: "version", defaultValue: "${BUILD_NUMBER}", trim: false, description: "Number docker images")
+		string(name: "portapp", defaultValue: "3000", trim: false, description: "Number port")
+		booleanParam(defaultValue: true, description: 'Build', name: 'BUILD')
+        booleanParam(defaultValue: true, description: 'Deploy', name: 'DEPLOY')
+	}
+
+    environment {
+        CI = 'true'
+    }
+	
+    stages {
+        stage('Build') {
+            when {
+                expression { 
+                    return params.BUILD
+                }
+            }
+            steps {
+                sh 'docker build -t simple-app:${version} .'
+            }
+        }
+        
+        stage('Deploy') {
+            when {
+                expression { 
+                    return params.DEPLOY
+                }
+            }
+            steps {
+                sh 'docker run --rm -d --name simple-app-${version} -p ${portapp}:3000 simple-app:${version}'
+                input message: 'Finished using the web site? (Click "Proceed" to continue)'
+                sh 'docker stop simple-app-${version}'
+            }
+        }
+    }
+}
